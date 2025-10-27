@@ -51,7 +51,7 @@ class GeminiImageGenerator(Star):
         self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
         logger.info(f"已切换到下一个 API 密钥（索引：{self.current_key_index}）")
 
-    @filter.command("gemini_image", alias={"文生图"})
+    @filter.command("生成图片", alias={"文生图"})
     async def generate_image(self, event: AstrMessageEvent, prompt: str):
         """根据文本描述生成图片"""
         if not self.api_keys:
@@ -60,7 +60,7 @@ class GeminiImageGenerator(Star):
 
         if not prompt.strip():
             yield event.plain_result(
-                "请输入图片描述（示例：/gemini_image 一只戴帽子的猫在月球上）"
+                "请输入图片描述（示例：/生成图片 一只戴帽子的猫在月球上）"
             )
             return
 
