@@ -334,9 +334,6 @@ class GeminiImageGenerator(Star):
             "contents": [
                 {"role": "user", "parts": parts} 
             ],
-            "generationConfig": {
-                "responseModalities": ["IMAGE"], # 编辑模式通常需要一点文字理解
-            },
             "safetySettings": SAFETY_SETTINGS
         }
 
@@ -393,9 +390,6 @@ class GeminiImageGenerator(Star):
 
         payload = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseModalities": ["IMAGE"],
-            },
             "safetySettings": SAFETY_SETTINGS
         }
 
