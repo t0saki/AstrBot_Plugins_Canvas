@@ -9,6 +9,15 @@ from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import Image
 from astrbot.api.star import Context, Star, register
 
+MODEL_NAME = "gemini-3-pro-image-preview"
+
+# 放宽安全限制，防止图片被过度过滤导致质量下降
+SAFETY_SETTINGS = [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+]
 
 @register("AstrBot_Plugins_Canvas", "长安某", "gemini画图工具", "1.2.0")
 class GeminiImageGenerator(Star):
@@ -289,7 +298,7 @@ class GeminiImageGenerator(Star):
 
     async def _edit_image_manually(self, prompt, image_path, api_key):
         """使用异步请求编辑图片"""
-        model_name = "gemini-3-pro-image-preview"
+        model_name = MODEL_NAME
 
         # 修正API地址格式
         base_url = self.api_base_url.strip()
@@ -315,24 +324,20 @@ class GeminiImageGenerator(Star):
                 .replace("\r", "")
             )
 
+        parts = [
+            {"text": prompt},
+            {"inlineData": {"mimeType": "image/png", "data": image_base64}}
+        ]
+
         # 构建请求参数
-        payload = {
+payload = {
             "contents": [
-                {"role": "user", "parts": [{"text": prompt}]},
-                {
-                    "role": "user",
-                    "parts": [
-                        {"inlineData": {"mimeType": "image/png", "data": image_base64}}
-                    ],
-                },
+                {"role": "user", "parts": parts} 
             ],
             "generationConfig": {
-                "responseModalities": ["TEXT", "IMAGE"],
-                "temperature": 0.8,
-                "topP": 0.95,
-                "topK": 40,
-                "maxOutputTokens": 1024,
+                "responseModalities": ["TEXT", "IMAGE"], # 编辑模式通常需要一点文字理解
             },
+            "safetySettings": SAFETY_SETTINGS
         }
 
         # 异步发送请求
@@ -371,7 +376,7 @@ class GeminiImageGenerator(Star):
 
     async def _generate_image_manually(self, prompt, api_key):
         """使用异步请求生成图片（替换同步请求）"""
-        model_name = "gemini-3-pro-image-preview"
+        model_name = MODEL_NAME
 
         base_url = self.api_base_url.strip()
         if not base_url.startswith("https://"):
@@ -389,12 +394,9 @@ class GeminiImageGenerator(Star):
         payload = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {
-                "responseModalities": ["TEXT", "IMAGE"],
-                "temperature": 0.8,
-                "topP": 0.95,
-                "topK": 40,
-                "maxOutputTokens": 1024,
+                "responseModalities": ["TEXT, ""IMAGE"],
             },
+            "safetySettings": SAFETY_SETTINGS
         }
 
         # 异步发送请求
@@ -419,6 +421,9 @@ class GeminiImageGenerator(Star):
         # 解析图片数据
         image_data = None
         if "candidates" in data and len(data["candidates"]) > 0:
+            if data["candidates"][0].get("finishReason") == "SAFETY":
+                raise Exception("图片生成因安全策略被拦截，请修改提示词")
+                
             for part in data["candidates"][0]["content"]["parts"]:
                 if "inlineData" in part and "data" in part["inlineData"]:
                     base64_str = (
