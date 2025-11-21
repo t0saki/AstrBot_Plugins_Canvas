@@ -22,7 +22,7 @@ SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 ]
 
-@register("AstrBot_Plugins_Canvas", "长安某", "gemini画图工具", "1.5.0")
+@register("AstrBot_Plugins_Canvas", "长安某", "gemini画图工具", "1.5.1")
 class GeminiImageGenerator(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -52,7 +52,6 @@ class GeminiImageGenerator(Star):
         self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
 
     # --- 核心：Open WebUI 同款图片清洗逻辑 ---
-    # 对应 OpenWebUI 源码中的 _optimize_image_for_api 方法
     def _process_image_for_api(self, image_path):
         """
         对图片进行标准化处理：
@@ -104,8 +103,10 @@ class GeminiImageGenerator(Star):
             return
 
         yield event.plain_result("正在生成...")
-        # 文生图：prompt + 无图片
-        await self._execute_gemini_request(event, prompt, None)
+        
+        # 【修复点 1】使用 async for 遍历生成器，而不是 await
+        async for result in self._execute_gemini_request(event, prompt, None):
+            yield result
 
     @filter.command("编辑图片", alias={"图编辑"})
     async def edit_image(self, event: AstrMessageEvent, prompt: str):
@@ -119,8 +120,10 @@ class GeminiImageGenerator(Star):
             return
 
         yield event.plain_result("正在编辑...")
-        # 图生图：prompt + 图片
-        await self._execute_gemini_request(event, prompt, image_path)
+        
+        # 【修复点 2】使用 async for 遍历生成器，而不是 await
+        async for result in self._execute_gemini_request(event, prompt, image_path):
+            yield result
 
     # --- 统一执行逻辑 ---
     async def _execute_gemini_request(self, event, prompt, image_path):
