@@ -8,6 +8,7 @@ from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import Image
 from astrbot.api.star import Context, Star, register
+import mimetypes
 
 MODEL_NAME = "gemini-3-pro-image-preview"
 
