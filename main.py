@@ -314,6 +314,13 @@ class GeminiImageGenerator(Star):
 
         headers = {"Content-Type": "application/json"}
 
+        # 2. 自动识别图片 MimeType (修复硬编码 image/png 的问题)
+        mime_type, _ = mimetypes.guess_type(image_path)
+        if not mime_type:
+            mime_type = "image/png" # 兜底
+        
+        logger.info(f"识别图片格式: {mime_type}")
+        
         # 读取图片并转换为Base64
         with open(image_path, "rb") as f:
             image_bytes = f.read()
@@ -326,7 +333,7 @@ class GeminiImageGenerator(Star):
 
         parts = [
             {"text": prompt},
-            {"inlineData": {"mimeType": "image/png", "data": image_base64}}
+            {"inlineData": {"mimeType": mime_type, "data": image_base64}}
         ]
 
         # 构建请求参数
