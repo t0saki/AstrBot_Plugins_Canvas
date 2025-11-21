@@ -22,7 +22,7 @@ SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 ]
 
-@register("AstrBot_Plugins_Canvas", "长安某", "gemini画图工具", "1.5.1")
+@register("AstrBot_Plugins_Canvas", "长安某", "gemini画图工具", "1.6.0")
 class GeminiImageGenerator(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -93,35 +93,46 @@ class GeminiImageGenerator(Star):
                 return mime_type or "image/png", base64.b64encode(f.read()).decode('utf-8')
 
     # --- 指令处理 ---
+    
+    # 【修复】将 prompt 参数重命名为 msg，并给默认值，避免与框架参数注入冲突
     @filter.command("生成图片", alias={"文生图"})
-    async def generate_image(self, event: AstrMessageEvent, prompt: str):
+    async def generate_image(self, event: AstrMessageEvent, msg: str = ""):
         if not self.api_keys:
             yield event.plain_result("请配置API Key")
             return
-        if not prompt.strip():
-            yield event.plain_result("请输入描述")
+        
+        # 如果 msg 为空，尝试获取事件的纯文本
+        prompt = msg.strip()
+        if not prompt:
+            yield event.plain_result("请输入描述，例如：/生成图片 一只猫")
             return
 
         yield event.plain_result("正在生成...")
         
-        # 【修复点 1】使用 async for 遍历生成器，而不是 await
+        # 【修复】使用 async for 遍历生成器
         async for result in self._execute_gemini_request(event, prompt, None):
             yield result
 
+    # 【修复】将 prompt 参数重命名为 msg，并给默认值
     @filter.command("编辑图片", alias={"图编辑"})
-    async def edit_image(self, event: AstrMessageEvent, prompt: str):
+    async def edit_image(self, event: AstrMessageEvent, msg: str = ""):
         if not self.api_keys:
             yield event.plain_result("请配置API Key")
             return
         
         image_path = await self._extract_image_from_reply(event)
         if not image_path:
-            yield event.plain_result("请引用(回复)一张图片")
+            yield event.plain_result("请先引用(回复)一张图片")
             return
+
+        prompt = msg.strip()
+        # 编辑图片允许 prompt 为空（虽然通常需要指令，但有时只是风格化）
+        if not prompt:
+            prompt = "Enhance this image" # 默认指令
 
         yield event.plain_result("正在编辑...")
         
-        # 【修复点 2】使用 async for 遍历生成器，而不是 await
+        # 【修复】使用 async for 遍历生成器
         async for result in self._execute_gemini_request(event, prompt, image_path):
             yield result
 
@@ -130,7 +141,7 @@ class GeminiImageGenerator(Star):
         save_path = None
         image_data = None
 
-        # 简单的重试循环
+        # 重试循环
         for _ in range(len(self.api_keys)):
             api_key = self._get_current_api_key()
             try:
