@@ -1,5 +1,6 @@
 ## Gemini Canvas 插件说明文档
 
+修改自[zgojin/AstrBot_Plugins_Canvas](https://github.com/zgojin/AstrBot_Plugins_Canvas)，使用大香蕉，修改触发文本。
 
 ### 插件简介
 基于Gemini AI模型，支持通过文本指令或自然语言交互，实现“文字生成图片”和“图片编辑”功能。操作简单，只需输入描述即可生成或修改图片。
