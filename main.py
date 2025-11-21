@@ -330,7 +330,7 @@ class GeminiImageGenerator(Star):
         ]
 
         # 构建请求参数
-payload = {
+        payload = {
             "contents": [
                 {"role": "user", "parts": parts} 
             ],
